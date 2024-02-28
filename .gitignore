@@ -160,4 +160,5 @@ cython_debug/
 #.ide
 config/credentials.json
 config/token.json
+config/gspread
 /token.json

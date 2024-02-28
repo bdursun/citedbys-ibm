@@ -2,9 +2,11 @@
 import os
 import sqlite3
 from pathlib import Path
+from  databases.alchemy import *
 class Database:
     column_name_list_academician="id INTEGER PRIMARY KEY", "name TEXT", "googlescholarid INT"
     column_name_list_uni="id INTEGER PRIMARY KEY", "name TEXT", "googlelink TEXT"
+    column_name_list_setup = 'id INTEGER PRIMARY KEY'
 
     def __init__(self, name):
         self.database_name = f"{name}.db"
@@ -17,7 +19,7 @@ class Database:
             print(f"{self.database_name} not found. Creating a new one...")
             db_path.touch()
             print(f"{self.database_name} created.")
-            Database.create_table(self, "tablename", Database.column_name_list_uni, db_path)
+            Database.execute_sql_query(self,"databases/create_table_citedbys.sql" , db_path)
         else:
             print("SQLite file found.")
     def create_db(self, subject):
@@ -28,20 +30,21 @@ class Database:
             db_path.touch()
             print("SQLite file created.")
             if subject=="applicant":
-                #applicant db create procedure
-                Database.create_table(self, "tablename", Database.column_name_list_academician, db_path)
+                Database.execute_sql_query(self, "sqlqueryfile", db_path)
             if subject=="department":
-                #department db create procedure
-                Database.create_table(self,"academician", Database.column_name_list_academician, db_path)
-
+                db = DatabaseAlc(db_path)
+                Base.metadata.create_all(db.engine)
+                return db
             if subject=="journal":
-                #journal db create procedure
-                Database.create_table(self,"tablename",   Database.column_name_list_academician, db_path)
+                Database.execute_sql_query(self, "sqlqueryfile", db_path)
         else:
             print("SQLite file found.")
-    def create_table(self, table_name, columns, path):
-            with sqlite3.connect(path) as connection:
-                cursor = connection.cursor()
-                create_table_sql = f"CREATE TABLE IF NOT EXISTS {table_name} ({', '.join(columns)})"
-                cursor.execute(create_table_sql)
-                print(f"Table '{table_name}' created with columns: {', '.join(columns)}")
+    def execute_sql_query(self,file ,path):
+                with sqlite3.connect(path) as connection:
+                    cursor = connection.cursor()
+                    with open(file, 'r') as file:
+                            sql_queries = file.read()
+                            queries = sql_queries.split(";")
+                            for query in queries:
+                                if query.strip():
+                                    cursor.execute(query)

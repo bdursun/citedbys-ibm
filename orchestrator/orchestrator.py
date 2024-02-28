@@ -1,42 +1,40 @@
-#orchestrator/orchestrator.py
+# orchestrator/orchestrator.py
 import os
+import time
 from databases.db import Database
 from orchestrator.client import Client
 import sys
-def setup():
-        print("Installing Python dependencies...")
-        os.system("pip install -r requirements.txt")
-        print("Dependencies installed.")
-        #db check
-        Database("citedbys").create_setup_db()
-
-def create_client(name, shortname, sub, period, email, googlelink):
-     Client.create_client(name, shortname, sub, period, email, googlelink)
-
-def management():
-    print("Client features")
-    while True:
-        action = input("Type 'clientid', 'add' to add a new client, 'back' to go back to the menu, or 'exit' to quit: ").strip()
-        if action == 'add':
-                Client.create_client(Client())
-                print("New client added successfully.")
-
-        elif action == 'back':
-            print("Returning to the menu...")
-            break
-
-        elif action == 'exit':
-            print("Exiting...")
-            sys.exit()
-
-        else:
-            #try to find client from id
-            try:
-                 int(action)
-                 print("int")
-            except ValueError:
-                 print("not integer")
 
 
-def check():
-        print("checking&updating")
+def create_client(email, name, short_name="", department_name="", department_short_name="", status="new", client_data_sheet_link="", department_subscribed=0, applicant_subscribed=0, journal_subscribed=0, department_data_last_update="", applicant_data_last_update="", journal_data_last_update="", data_update_period="one_demand"):
+    print(email)
+    client = Client(email, name, short_name, department_name, department_short_name, status,None ,client_data_sheet_link, department_subscribed, applicant_subscribed, journal_subscribed, department_data_last_update, applicant_data_last_update, journal_data_last_update, data_update_period)
+    client.create_client()
+
+def get_info_client(id):
+    Client.get_client_info(id)
+
+
+def get_all_info_client():
+    Client.get_all_client_info()
+
+
+def remove_client(id):
+    Client.remove_client(id)
+
+
+def remove_everyone(tablename):
+    Client.remove_everyone(tablename)
+
+
+def remove_table(tablename):
+    Client.remove_table(tablename)
+
+def update_client_information(id, column, value):
+    Client.update_client_information(id,column, value)
+
+def daily_update():
+    Client.daily_update(Client)
+
+def manual_update(id):
+    Client.manual_update(Client, id)
