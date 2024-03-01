@@ -18,27 +18,34 @@ class Department:
         apiservice = GoogleServices(auth)
         return apiservice.create_sheet_copy("CitedBys Academic Data Entry Template", client.name, client.email)
 
-    def get_info_from_sheet(self, link, db_name):
-        db_path = "./databases/" + db_name + ".db"
+    def get_info_from_sheet(self, client):
+        db_path = "./databases/" + client.name + ".db"
         sqlite_db = DatabaseAlc(db_path)
         session = sqlite_db.create_session()
         apiclient = GoogleAPIClient()
         gc = apiclient.auth_for_gspread()
-        sheet = gc.open_by_url(link)
+        sheet = gc.open_by_url(client.client_data_sheet_link)
         apiclient = GoogleAPIClient()
         gc = apiclient.auth_for_gspread()
-        sheet = gc.open_by_url(link)
-        sqlite_db.insert_data_from_sheet(
-            sheet.get_worksheet(0), DegreesUsed, session)
-        sqlite_db.insert_data_from_sheet(
-            sheet.get_worksheet(1), DepartmentPeople, session)
-        sqlite_db.insert_data_from_sheet(
-            sheet.get_worksheet(2), DegreeDates, session)
-        sqlite_db.insert_data_from_sheet(
-            sheet.get_worksheet(3), Peers, session)
-        sqlite_db.insert_data_from_sheet(
-            sheet.get_worksheet(4), Applicants, session)
-        session.close()
+        sheet = gc.open_by_url(client.client_data_sheet_link)
+        if client.department_subscribed:
+            sqlite_db.insert_data_from_sheet(
+                sheet.get_worksheet(0), DegreesUsed, session)
+            sqlite_db.insert_data_from_sheet(
+                sheet.get_worksheet(1), DepartmentPeople, session)
+            sqlite_db.insert_data_from_sheet(
+                sheet.get_worksheet(2), DegreeDates, session)
+            print("department added")
+        if client.peer_subscribed:
+            sqlite_db.insert_data_from_sheet(
+                sheet.get_worksheet(3), Peers, session)
+            print("peer added")
+        if client.applicant_subscribed:
+            sqlite_db.insert_data_from_sheet(
+                sheet.get_worksheet(4), Applicants, session)
+            print("applicant added")
+
+            session.close()
 
         # conn = sqlite3.connect(f'./databases/{db_name}.db')
         # cursor = conn.cursor()

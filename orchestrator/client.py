@@ -2,7 +2,6 @@ import sqlite3
 import datetime
 import time
 from department.department import Department
-from applicant.applicant import Applicant
 from journal.journal import Journal
 from orchestrator.update import Update
 import config.googleapi
@@ -17,9 +16,9 @@ class Client:
                  client_data_sheet_link="",
                  department_subscribed=0,
                  applicant_subscribed=0,
+                 peer_subscribed=0,
                  journal_subscribed=0,
                  department_data_last_update="",
-                 applicant_data_last_update="",
                  journal_data_last_update="",
                  data_update_period="monthly"):
         self.id = id
@@ -33,9 +32,9 @@ class Client:
         self.client_data_sheet_link = client_data_sheet_link
         self.department_subscribed = department_subscribed
         self.applicant_subscribed = applicant_subscribed
+        self.peer_subscribed = peer_subscribed
         self.journal_subscribed = journal_subscribed
         self.department_data_last_update = department_data_last_update
-        self.applicant_data_last_update = applicant_data_last_update
         self.journal_data_last_update = journal_data_last_update
         self.data_update_period = data_update_period
 
@@ -52,15 +51,12 @@ class Client:
 
     def create_client(self):
         print(vars(self))
-        if self.applicant_subscribed:
-            self.client_data_sheet_link = Applicant(
-                self).sheetlink["webViewLink"]
         if self.department_subscribed:
-            dep= Department
-            self.client_data_sheet_link = dep.create_sheet(dep,self)["webViewLink"]
+            dep = Department()
+            self.client_data_sheet_link = dep.create_sheet(self)["webViewLink"]
         if self.journal_subscribed:
-            self.client_data_sheet_link = Journal(
-                self).sheetlink["webViewLink"]
+            jour = Journal()
+            self.client_data_sheet_link = jour.create_sheet(self)["webViewLink"]
 
         conn = sqlite3.connect('./orchestrator/citedbys.db')
         cursor = conn.cursor()
@@ -70,13 +66,13 @@ class Client:
                  status,created,client_data_sheet_link,
                  department_subscribed ,
                  applicant_subscribed,
+                 peer_subscribed,
                  journal_subscribed,
                  department_data_last_update,
-                 applicant_data_last_update,
                  journal_data_last_update,
                  data_update_period) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)'''
         cursor.execute(insert_query, (self.email, self.name, self.short_name, self.department_name, self.department_short_name, self.status,  time.time(), self.client_data_sheet_link, self.department_subscribed,
-                       self.applicant_subscribed, self.journal_subscribed, self.department_data_last_update, self.applicant_data_last_update, self.journal_data_last_update, self.data_update_period))
+                       self.applicant_subscribed, self.peer_subscribed, self.journal_subscribed, self.department_data_last_update, self.journal_data_last_update, self.data_update_period))
         conn.commit()
         print("Value updated successfully")
         conn.close()
@@ -155,7 +151,7 @@ class Client:
             conn.close()
 
     def daily_update(self):
-        update = Update
+        update = Update()
         clients = self.get_all_client_info()
         for index, client in enumerate(clients):
             try:
@@ -164,19 +160,16 @@ class Client:
             except Exception as e:
                 print(
                     f"Error occurred while creating Client object for client at index {index}: {e}")
-            if classClient.department_subscribed or classClient.applicant_subscribed or classClient.journal_subscribed:
-
-                if classClient.department_subscribed:
-                    update.update_department(Update, classClient)
-                if classClient.applicant_subscribed:
-                    update.update_applicant(Update, classClient)
+            if classClient.department_subscribed or classClient.peer_subscribed or classClient.applicant_subscribed or classClient.journal_subscribed:
                 if classClient.journal_subscribed:
-                    update.update_journal(Update, classClient)
+                    update.update_journal(classClient)
+                else:
+                    update.update_department(classClient)
             else:
                 print(f"couldnt find any sub for {classClient.name}")
 
     def manual_update(self, id):
-        update = Update
+        update = Update()
         client = self.get_client_info(id)
         try:
             id_, *client_without_id = client
@@ -184,12 +177,10 @@ class Client:
         except Exception as e:
             print(
                 f"Error occurred while creating Client object for client at index {id}: {e}")
-        if classClient.department_subscribed or classClient.applicant_subscribed or classClient.journal_subscribed:
-            if classClient.department_subscribed:
-                update.update_department(Update, classClient)
-            if classClient.applicant_subscribed:
-                update.update_applicant(Update, classClient)
+        if classClient.department_subscribed or classClient.peer_subscribed or classClient.applicant_subscribed or classClient.journal_subscribed:
             if classClient.journal_subscribed:
-                update.update_journal(Update, classClient)
+                update.update_journal(classClient)
+            else:
+                update.update_department(classClient)
         else:
             print(f"couldnt find any sub for {classClient.name}")

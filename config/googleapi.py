@@ -10,7 +10,7 @@ import os
 
 
 class GoogleAPIClient:
-    def __init__(self, credentials_file="config/credentials.json", token_file="token.json"):
+    def __init__(self, credentials_file="config/credentials.json", token_file="./config/token.json"):
         self.scopes = ["https://www.googleapis.com/auth/drive"]
         self.credentials_file = credentials_file
         self.token_file = token_file
@@ -22,7 +22,10 @@ class GoogleAPIClient:
                 self.token_file, self.scopes)
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
+                try:
+                    creds.refresh(Request())
+                except Exception as error:
+                    print(f'error here {error}')
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(
                     self.credentials_file, self.scopes

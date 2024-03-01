@@ -10,9 +10,9 @@ CREATE TABLE client_informations (
     client_data_sheet_link TEXT,
     department_subscribed BOOLEAN DEFAULT 0,
     applicant_subscribed BOOLEAN DEFAULT 0,
+    peer_subscribed BOOLEAN DEFAULT 0,
     journal_subscribed BOOLEAN DEFAULT 0,
     department_data_last_update DATETIME,
-    applicant_data_last_update DATETIME,
     journal_data_last_update DATETIME,
     data_update_period TEXT
 );

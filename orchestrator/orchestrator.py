@@ -6,9 +6,9 @@ from orchestrator.client import Client
 import sys
 
 
-def create_client(email, name, short_name="", department_name="", department_short_name="", status="new", client_data_sheet_link="", department_subscribed=0, applicant_subscribed=0, journal_subscribed=0, department_data_last_update="", applicant_data_last_update="", journal_data_last_update="", data_update_period="one_demand"):
+def create_client(email, name, short_name="", department_name="", department_short_name="", status="new", client_data_sheet_link="", department_subscribed=0, applicant_subscribed=0,peer_subscribed= 0, journal_subscribed=0, department_data_last_update="", journal_data_last_update="", data_update_period="one_demand"):
     print(email)
-    client = Client(email, name, short_name, department_name, department_short_name, status,None ,client_data_sheet_link, department_subscribed, applicant_subscribed, journal_subscribed, department_data_last_update, applicant_data_last_update, journal_data_last_update, data_update_period)
+    client = Client(email, name, short_name, department_name, department_short_name, status,None ,client_data_sheet_link, department_subscribed, applicant_subscribed, peer_subscribed ,journal_subscribed, department_data_last_update, journal_data_last_update, data_update_period)
     client.create_client()
 
 def get_info_client(id):

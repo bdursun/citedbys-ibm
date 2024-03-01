@@ -4,46 +4,27 @@ from databases.db import Database
 from department.department import Department
 from databases.alchemy import *
 from config.googleapi import *
+from crawler.crawler import *
 import json
 import csv
 import io
 import pandas as pd
+import os
 
 
 class Update:
     def __init__(self) -> None:
         pass
 
-    def update_applicant(self, client):
-        if not client.applicant_subscribed:
-            return
-        else:
-            if self.time_diff(client.applicant_data_last_update, client.data_update_period):
-                print(f"client{client.name}  app needs to update")
-            else:
-                print(f"client{client.name}  app no need to update")
-
     def update_department(self, client):
-        if not client.department_subscribed:
+        if not client.department_subscribed and client.peer_subscribed and client.applicant_subscribed:
             return
         else:
             if self.time_diff(client.department_data_last_update, client.data_update_period):
                 print(f"client{client.name}  dep needs to update")
-                Database.create_db(client, "department")
-                dep = Department
-                dep.get_info_from_sheet(dep, client.client_data_sheet_link, client.name)
-                output_value = "output_test.json"
-                db =self.filtering_json(output_value, client.name)
-                db.create_view("viewname", "SELECT * FROM peers")
-                rows = db.select_view("viewname")
-                df = pd.DataFrame(rows)
-                csv_buffer = io.BytesIO()
-                df.to_csv(csv_buffer, index=False, mode='w')
-                csv_buffer.seek(0)
-                apiclient = GoogleAPIClient()
-                auth = apiclient.authenticate()
-                apiservice = GoogleServices(auth)
-                apiservice.save_csv(client.name, csv_buffer)
+                self.update_client_data(client, 'department')
+                self.create_view_and_save_csv(client, 'SELECT * FROM peers')
+                # call crawler class and return outputvalue
 
             else:
                 print(f"client{client.name}  dep no need to update")
@@ -54,10 +35,12 @@ class Update:
         else:
             if self.time_diff(client.journal_data_last_update, client.data_update_period):
                 print(f"client{client.name}  jour needs to update")
+                self.update_client_data(client, "journal")
+                self.create_view_and_save_csv(client, 'SELECT * FROM matched_publications')
             else:
                 print(f"client{client.name}  jour no need to update")
 
-    def time_diff(lastdate, period):
+    def time_diff(self, lastdate, period):
         cur_time = datetime.now()
         print(" cur_time: ",  cur_time)
         print(" last_date: ",  lastdate)
@@ -77,26 +60,101 @@ class Update:
             return True
         return
 
-    def filtering_json(json_file_path, db_name):
+    def filtering_json(self, json_file_path, client):
         with open(json_file_path, 'r', encoding='utf-16') as file:
             data = json.load(file)
-        db_path = "./databases/" + db_name + ".db"
+        db_path = "./databases/" + client.name + ".db"
         sqlite_db = DatabaseAlc(db_path)
         session = sqlite_db.create_session()
         profile_id = None
-        if 'person' in data:
-            person_data = data['person']
-            profile_id = sqlite_db.insert_data_from_json_main(person_data, ProfileLevelAttribute, session)
-        if 'coauthors' in data['person']:
-            coauthor_data = data['person']['coauthors']
-            sqlite_db.insert_data_from_json_nested(coauthor_data, Coauthor, session,None, profile_id)
-        if 'publications' in data['person']:
-            publication_data = data['person']['publications']
-            sqlite_db.insert_data_from_json_nested(publication_data, Publication, session,None, profile_id)
-            for publication in publication_data:
-                if 'yearly_citations' in publication:
-                    yearly_citations_data = publication['yearly_citations']
-                    scholar_id  = publication.get('google_scholar_id', None)
-                    pub_id  = publication.get('publicationid', None)
-                    sqlite_db.insert_data_from_json_nested(yearly_citations_data, YearlyCitation, session,scholar_id, None, pub_id)
-        return sqlite_db
+        if client.department_subscribed or client.applicant_subscribed or client.peer_subscribed:
+            if 'person' in data:
+                person_data = data['person']
+                profile_id = sqlite_db.insert_data_from_json_main(
+                    person_data, ProfileLevelAttribute, session)
+            if 'coauthors' in data['person']:
+                coauthor_data = data['person']['coauthors']
+                sqlite_db.insert_data_from_json_nested(
+                    coauthor_data, Coauthor, session, None, profile_id)
+            if 'publications' in data['person']:
+                publication_data = data['person']['publications']
+                sqlite_db.insert_data_from_json_nested(
+                    publication_data, Publication, session, None, profile_id)
+                for publication in publication_data:
+                    if 'yearly_citations' in publication:
+                        yearly_citations_data = publication['yearly_citations']
+                        scholar_id = publication.get('google_scholar_id', None)
+                        pub_id = publication.get('publicationid', None)
+                        sqlite_db.insert_data_from_json_nested(
+                            yearly_citations_data, YearlyCitation, session, scholar_id, None, pub_id)
+            return sqlite_db
+        if client.journal_subscribed:
+            if 'matched_publications' in data:
+                journal_data = data['matched_publications'][0]
+                sqlite_db.insert_data_from_json_main(
+                    journal_data, MatchedPublications, session)
+            return sqlite_db
+
+    def delete_last_db(self, name):
+        file_path = f'./databases/{name}.db'
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            print(f"File '{file_path}' has been successfully deleted.")
+        else:
+            print(f"File '{file_path}' does not exist.")
+
+    def crawling_loop(self, client):
+        db_path = "./databases/" + client.name + ".db"
+        sqlite_db = DatabaseAlc(db_path)
+        session = sqlite_db.create_session()
+        crawler_class = Crawler()
+        if client.department_subscribed or client.peer_subscribed or client.applicant_subscribed:
+            departments = session.query(DepartmentPeople)
+            if departments:
+                for department in departments:
+                    result = crawler_class.execute_crawler(
+                        department.google_scholar_id)
+                    print(result)
+            peers = session.query(Peers)
+            if peers:
+                for peer in peers:
+                    result = crawler_class.execute_crawler(peer.google_scholar_id)
+                    print(result)
+            applicants = session.query(Applicants)
+            if applicants:
+                for applicant in applicants:
+                    result = crawler_class.execute_crawler(
+                        applicant.applicant_google_scholar_id)
+                    print(result)
+        else:
+            matched_publications = session.query(MatchedPublications)
+            if matched_publications:
+                for publication in matched_publications:
+                    print(publication.traceid)
+                    result = crawler_class.execute_crawler(
+                        publication.publicationid)
+                    print(result)
+
+    def update_client_data(self, client, subject):
+        self.delete_last_db(client.name)
+        Database.create_db(client, subject)
+        if subject == "department":
+            dep = Department()
+            dep.get_info_from_sheet(client)
+        else:
+            jour = Journal()
+            jour.get_info_from_sheet(client)
+        self.crawling_loop(client)
+
+    def create_view_and_save_csv(self, client, query):
+        db = self.filtering_json("journal template.json", client)
+        db.create_view("viewname", query)
+        rows = db.select_view("viewname")
+        df = pd.DataFrame(rows)
+        csv_buffer = io.BytesIO()
+        df.to_csv(csv_buffer, index=False, mode='w')
+        csv_buffer.seek(0)
+        apiclient = GoogleAPIClient()
+        auth = apiclient.authenticate()
+        apiservice = GoogleServices(auth)
+        apiservice.save_csv(client.name, csv_buffer)

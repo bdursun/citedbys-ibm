@@ -5,7 +5,8 @@ from sqlalchemy.orm import relationship
 import csv
 import pandas as pd
 
-Base = declarative_base()
+Base_Academics = declarative_base()
+Base_Journal = declarative_base()
 
 
 class DatabaseAlc:
@@ -21,7 +22,8 @@ class DatabaseAlc:
     def insert_data_from_sheet(self, sheet, table, session):
         for a_row in sheet.get_all_records():
             try:
-                data = {key.replace(' ', '_').lower()                        : value for key, value in a_row.items()}
+                data = {key.replace(' ', '_').lower()
+                                    : value for key, value in a_row.items()}
                 session.add(table(**data))
                 session.commit()
             except Exception as e:
@@ -82,7 +84,7 @@ class DatabaseAlc:
             return rows
 
 
-class ProfileLevelAttribute(Base):
+class ProfileLevelAttribute(Base_Academics):
     __tablename__ = 'profile_level_attributes'
 
     id = Column(Integer, primary_key=True)
@@ -108,7 +110,7 @@ class ProfileLevelAttribute(Base):
     department_url = Column(String(255))
 
 
-class Coauthor(Base):
+class Coauthor(Base_Academics):
     __tablename__ = 'coauthors'
 
     id = Column(Integer, primary_key=True)
@@ -121,7 +123,7 @@ class Coauthor(Base):
     profile_level_attributes = relationship("ProfileLevelAttribute")
 
 
-class Publication(Base):
+class Publication(Base_Academics):
     __tablename__ = 'publications'
 
     id = Column(Integer, primary_key=True)
@@ -154,7 +156,7 @@ class Publication(Base):
     profile_level_attributes = relationship("ProfileLevelAttribute")
 
 
-class YearlyCitation(Base):
+class YearlyCitation(Base_Academics):
     __tablename__ = 'yearly_citations'
 
     id = Column(Integer, primary_key=True)
@@ -168,7 +170,7 @@ class YearlyCitation(Base):
     # publication = relationship("Publication", foreign_keys=[publication_id, google_scholar_id])
 
 
-class Peers(Base):
+class Peers(Base_Academics):
     __tablename__ = 'peers'
 
     id = Column(Integer, primary_key=True)
@@ -180,7 +182,7 @@ class Peers(Base):
     google_scholar_id = Column(String(255))
 
 
-class DegreesUsed(Base):
+class DegreesUsed(Base_Academics):
     __tablename__ = 'degrees_used'
 
     id = Column(Integer, primary_key=True)
@@ -189,7 +191,7 @@ class DegreesUsed(Base):
     degree_rank = Column(Integer)
 
 
-class DepartmentPeople(Base):
+class DepartmentPeople(Base_Academics):
     __tablename__ = 'department_people'
 
     id = Column(Integer, primary_key=True)
@@ -200,7 +202,7 @@ class DepartmentPeople(Base):
     department_join_date = Column(String(255))
 
 
-class DegreeDates(Base):
+class DegreeDates(Base_Academics):
     __tablename__ = 'degree_dates'
 
     id = Column(Integer, primary_key=True)
@@ -209,7 +211,7 @@ class DegreeDates(Base):
     degree_date = Column(String(255))
 
 
-class Applicants(Base):
+class Applicants(Base_Academics):
     __tablename__ = 'applicants'
 
     id = Column(Integer, primary_key=True)
@@ -217,3 +219,35 @@ class Applicants(Base):
     applicant_full_name = Column(String(255))
     applicant_google_scholar_profile_link = Column(String(255))
     applicant_google_scholar_id = Column(String(255))
+
+
+class MatchedPublications(Base_Journal):
+    __tablename__ = 'matched_publications'
+
+    id = Column(Integer, primary_key=True)
+    data_source = Column(String(255))
+    match_rank = Column(Integer)
+    publication_title = Column(String(255))
+    publication_publish_url = Column(String(255))
+    pdf_link = Column(String(255))
+    pdf_text = Column(String(255))
+    publication_year = Column(Integer)
+    citedby_url = Column(String(255))
+    total_citations = Column(String(255))
+    authors = Column(String(255))
+    authors_google_scholar_ids = Column(String(255))
+    publisher = Column(String(255))
+    publicationid = Column(String(255))
+    cite_page_text = Column(String(255))
+    traceid = Column(Integer)
+
+
+class RejectedPapers(Base_Journal):
+    __tablename__ = 'rejected_papers'
+
+    id = Column(Integer, primary_key=True)
+    traceid = Column(Integer)
+    manuscript_title = Column(String(255))
+    authors_list = Column(String(255))
+    manuscript_year = Column(Integer)
+    keywords = Column(String(255))

@@ -19,18 +19,18 @@ def main():
     ##create a new client
     # email and name required!!!
     # create_client(
-    #             email= "DOHA@gmail.com",
-    #             name= "DOHA",
-    #             short_name="DH",
-    #             department_name="Business School",
-    #             department_short_name="BS",
+    #             email= "webofscience@wos.com",
+    #             name= "web of science",
+    #             short_name="wos",
+    #             department_name="web of science",
+    #             department_short_name="wos",
     #             status="new",
     #             client_data_sheet_link="",
-    #             department_subscribed=1,
+    #             department_subscribed=0,
     #             applicant_subscribed=0,
-    #             journal_subscribed=0,
+    #             peer_subscribed=0,
+    #             journal_subscribed=1,
     #             department_data_last_update="",
-    #             applicant_data_last_update="",
     #             journal_data_last_update="",
     #             data_update_period="monthly")
 
@@ -72,7 +72,7 @@ def main():
 #------------------------------------#
 
     #Manual Update with Client ID
-    client_id= 6
+    client_id= 2
     manual_update(client_id)
 
 
@@ -83,46 +83,14 @@ def main():
 # def get_field_names(json_file_path):
 #     with open(json_file_path, 'r', encoding='utf-16') as file:
 #         data = json.load(file)
-#     return data['person']['publications']
-# json_file_path = "output_test.json"
+#     return data['matched_publications'][0].keys()
+# json_file_path = "journal template.json"
 # field_names = get_field_names(json_file_path)
-# for field_names2 in field_names:
-#     for key,values in field_names2.items():
-#         print(key," :  ",values)
-#         print('\n')
-#     print("-------------------------")
+# print(field_names)
 
 
 
 # ----------
 
-
-
-# def get_field_names(json_data):
-#     field_names = []
-
-#     # Recursive function to traverse nested JSON structure
-#     def traverse(data, prefix=''):
-#         if isinstance(data, dict):
-#             for key, value in data.items():
-#                 new_prefix = f"{prefix}.{key}" if prefix else key
-#                 traverse(value, new_prefix)
-#         elif isinstance(data, list):
-#             for i, item in enumerate(data):
-#                 new_prefix = f"{prefix}[{i}]" if prefix else f"[{i}]"
-#                 traverse(item, new_prefix)
-#         else:
-#             field_names.append(prefix)
-
-#     traverse(json_data)
-#     return field_names
-
-# json_file_path = "output_test.json" 
-
-# with open(json_file_path, 'r',encoding='utf-16') as file:
-#     json_data = json.load(file)
-
-# field_names = get_field_names(json_data)
-# print(field_names)
 if __name__ == '__main__':
     main()

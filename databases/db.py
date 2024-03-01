@@ -23,20 +23,19 @@ class Database:
         else:
             print("SQLite file found.")
     def create_db(self, subject):
-        print("createdb:", vars(self))
         db_path = Path("./databases", self.name + ".db")
         if not db_path.exists():
             print("SQLite file not found. Creating a new one...")
             db_path.touch()
             print("SQLite file created.")
-            if subject=="applicant":
-                Database.execute_sql_query(self, "sqlqueryfile", db_path)
             if subject=="department":
                 db = DatabaseAlc(db_path)
-                Base.metadata.create_all(db.engine)
+                Base_Academics.metadata.create_all(db.engine)
                 return db
             if subject=="journal":
-                Database.execute_sql_query(self, "sqlqueryfile", db_path)
+                db = DatabaseAlc(db_path)
+                Base_Journal.metadata.create_all(db.engine)
+                return db
         else:
             print("SQLite file found.")
     def execute_sql_query(self,file ,path):
