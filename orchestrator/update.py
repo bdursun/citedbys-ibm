@@ -36,7 +36,8 @@ class Update:
             if self.time_diff(client.journal_data_last_update, client.data_update_period):
                 print(f"client{client.name}  jour needs to update")
                 self.update_client_data(client, "journal")
-                self.create_view_and_save_csv(client, 'SELECT * FROM matched_publications')
+                self.create_view_and_save_csv(
+                    client, 'SELECT * FROM matched_publications')
             else:
                 print(f"client{client.name}  jour no need to update")
 
@@ -90,9 +91,9 @@ class Update:
             return sqlite_db
         if client.journal_subscribed:
             if 'matched_publications' in data:
-                journal_data = data['matched_publications'][0]
-                sqlite_db.insert_data_from_json_main(
-                    journal_data, MatchedPublications, session)
+                for journal_data in data['matched_publications']:
+                    sqlite_db.insert_data_from_json_main(
+                        journal_data, MatchedPublications, session)
             return sqlite_db
 
     def delete_last_db(self, name):
@@ -112,27 +113,28 @@ class Update:
             departments = session.query(DepartmentPeople)
             if departments:
                 for department in departments:
-                    result = crawler_class.execute_crawler(
-                        department.google_scholar_id)
+                    result = crawler_class.execute_crawler('department',
+                                                           department.google_scholar_id)
                     print(result)
             peers = session.query(Peers)
             if peers:
                 for peer in peers:
-                    result = crawler_class.execute_crawler(peer.google_scholar_id)
+                    result = crawler_class.execute_crawler(
+                        'department', peer.google_scholar_id)
                     print(result)
             applicants = session.query(Applicants)
             if applicants:
                 for applicant in applicants:
-                    result = crawler_class.execute_crawler(
-                        applicant.applicant_google_scholar_id)
+                    result = crawler_class.execute_crawler('department',
+                                                           applicant.applicant_google_scholar_id)
                     print(result)
         else:
-            matched_publications = session.query(MatchedPublications)
-            if matched_publications:
-                for publication in matched_publications:
-                    print(publication.traceid)
-                    result = crawler_class.execute_crawler(
-                        publication.publicationid)
+            rejected_papers = session.query(RejectedPapers)
+            if rejected_papers:
+                for rejected_paper in rejected_papers:
+                    print(rejected_paper.traceid)
+                    result = crawler_class.execute_crawler('journal',
+                                                           rejected_paper.traceid)  # it will change to needed parameters for crawler
                     print(result)
 
     def update_client_data(self, client, subject):
@@ -144,7 +146,7 @@ class Update:
         else:
             jour = Journal()
             jour.get_info_from_sheet(client)
-        self.crawling_loop(client)
+        self.crawling_loop(client)  # it will return json data
 
     def create_view_and_save_csv(self, client, query):
         db = self.filtering_json("journal template.json", client)
