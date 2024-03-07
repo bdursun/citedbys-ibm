@@ -1,3 +1,4 @@
+#config/googleapi.py
 import io
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
@@ -10,8 +11,9 @@ import os
 
 
 class GoogleAPIClient:
-    def __init__(self, credentials_file="config/credentials.json", token_file="./config/token.json"):
-        self.scopes = ["https://www.googleapis.com/auth/drive"]
+    def __init__(self, service_file='config/service_account/credentials.json', credentials_file='config/oauth2/credentials.json', token_file='config/oauth2/token.json'):
+        self.service_file = service_file
+        self.scopes = ['https://www.googleapis.com/auth/drive',]
         self.credentials_file = credentials_file
         self.token_file = token_file
 
@@ -36,7 +38,11 @@ class GoogleAPIClient:
         return creds
 
     def auth_for_gspread(self):
-        gc = gspread.oauth(credentials_filename=self.credentials_file)
+        creds = service_account.Credentials.from_service_account_file(
+            self.service_file, scopes=self.scopes)
+        creds.refresh(Request())
+        gc = gspread.authorize(creds)
+        print('gc: ',vars(gc.http_client.auth))
         return gc
 
 
@@ -79,6 +85,7 @@ class GoogleServices:
             fileId=copy_file_id, fields='webViewLink').execute()
         print("link: ", link)
         return link
+
     def save_csv(self, csvname, csv_buffer):
         folder_client = self.drive_service.files().list(
             q="name='Output'").execute().get('files', [])
@@ -90,8 +97,6 @@ class GoogleServices:
         new_folder = self.drive_service.files().create(
             body=folder_metadata, fields='id').execute()
         new_folder_id = new_folder.get('id')
-        # csv_buffer = io.BytesIO(csv_binary.getvalue().encode())
-        # media = MediaIoBaseUpload(csv_buffer, mimetype='text/csv')
         media = MediaIoBaseUpload(csv_buffer, mimetype='text/csv')
         file_metadata = {
             'name': str(csvname)+'.csv',

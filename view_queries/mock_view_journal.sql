@@ -1,0 +1,1 @@
+SELECT * FROM matched_publications;

@@ -1,3 +1,4 @@
+# orchestrator/update.py
 from orchestrator.client import *
 from datetime import datetime
 from databases.db import Database
@@ -20,32 +21,53 @@ class Update:
         if not client.department_subscribed and client.peer_subscribed and client.applicant_subscribed:
             return
         else:
-            if self.time_diff(client.department_data_last_update, client.data_update_period):
-                print(f"client{client.name}  dep needs to update")
-                self.update_client_data(client, 'department')
-                self.create_view_and_save_csv(client, 'SELECT * FROM peers')
-                # call crawler class and return outputvalue
-
-            else:
-                print(f"client{client.name}  dep no need to update")
+            try:
+                if self.time_diff(client.department_data_last_update, client.data_update_period):
+                    print(f"client{client.name}  dep needs to update")
+                    self.update_client_data(client, 'department')
+                    with open("view_queries/mock_view_dep.sql", 'r') as file:
+                        query = file.read()
+                    db = self.filtering_json(
+                        "mock_data/output_test.json", client)
+                    db.create_view("viewname", query)
+                    csv_buffer = self.convert_csv(db.select_view("viewname"))
+                    self.save_csv(client.name, csv_buffer)
+                    # call crawler class and return outputvalue
+                else:
+                    print(f"client{client.name}  dep no need to update")
+            except Exception as e:
+                print(
+                    f"An error occurred while updating dep data: {str(e)}")
 
     def update_journal(self, client):
         if not client.journal_subscribed:
             return
         else:
-            if self.time_diff(client.journal_data_last_update, client.data_update_period):
-                print(f"client{client.name}  jour needs to update")
-                self.update_client_data(client, "journal")
-                self.create_view_and_save_csv(
-                    client, 'SELECT * FROM matched_publications')
-            else:
-                print(f"client{client.name}  jour no need to update")
+            try:
+                if self.time_diff(client.journal_data_last_update, client.data_update_period):
+                    print(f"client{client.name}  jour needs to update")
+                    self.update_client_data(client, "journal")
+                    with open("view_queries/mock_view_journal.sql", 'r') as file:
+                        query = file.read()
+                    db = self.filtering_json(
+                        "mock_data/journal template.json", client)
+                    db.create_view("viewname", query)
+                    csv_buffer = self.convert_csv(db.select_view("viewname"))
+                    self.save_csv(client.name, csv_buffer)
+                else:
+                    print(f"client{client.name}  jour no need to update")
+            except Exception as e:
+                print(
+                    f"An error occurred while updating journal data: {str(e)}")
 
     def time_diff(self, lastdate, period):
         cur_time = datetime.now()
-        print(" cur_time: ",  cur_time)
-        print(" last_date: ",  lastdate)
-        last_date = datetime.strptime(lastdate, '%Y-%m-%d %H:%M:%S')
+        if not lastdate:
+            return True
+        try:
+            last_date = datetime.strptime(lastdate, '%Y-%m-%d %H:%M:%S')
+        except Exception as e:
+            last_date = lastdate
         if period == "monthly":
             period_day = 30
         elif period == "quarterly":
@@ -64,7 +86,7 @@ class Update:
     def filtering_json(self, json_file_path, client):
         with open(json_file_path, 'r', encoding='utf-16') as file:
             data = json.load(file)
-        db_path = "./databases/" + client.name + ".db"
+        db_path = "./databases/db/" + client.name + ".db"
         sqlite_db = DatabaseAlc(db_path)
         session = sqlite_db.create_session()
         profile_id = None
@@ -97,7 +119,7 @@ class Update:
             return sqlite_db
 
     def delete_last_db(self, name):
-        file_path = f'./databases/{name}.db'
+        file_path = f'./databases/db/{name}.db'
         if os.path.exists(file_path):
             os.remove(file_path)
             print(f"File '{file_path}' has been successfully deleted.")
@@ -105,7 +127,7 @@ class Update:
             print(f"File '{file_path}' does not exist.")
 
     def crawling_loop(self, client):
-        db_path = "./databases/" + client.name + ".db"
+        db_path = "./databases/db/" + client.name + ".db"
         sqlite_db = DatabaseAlc(db_path)
         session = sqlite_db.create_session()
         crawler_class = Crawler()
@@ -139,24 +161,25 @@ class Update:
 
     def update_client_data(self, client, subject):
         self.delete_last_db(client.name)
-        Database.create_db(client, subject)
+        db = Database(client.name)
+        db.create_db(subject)
         if subject == "department":
             dep = Department()
-            dep.get_info_from_sheet(client)
+            dep.get_provided_details(client)
         else:
             jour = Journal()
-            jour.get_info_from_sheet(client)
+            jour.get_provided_details(client)
         self.crawling_loop(client)  # it will return json data
 
-    def create_view_and_save_csv(self, client, query):
-        db = self.filtering_json("journal template.json", client)
-        db.create_view("viewname", query)
-        rows = db.select_view("viewname")
+    def save_csv(self, name, csv_buffer):
+        apiclient = GoogleAPIClient()
+        auth = apiclient.authenticate()
+        apiservice = GoogleServices(auth)
+        apiservice.save_csv(name, csv_buffer)
+
+    def convert_csv(self, rows):
         df = pd.DataFrame(rows)
         csv_buffer = io.BytesIO()
         df.to_csv(csv_buffer, index=False, mode='w')
         csv_buffer.seek(0)
-        apiclient = GoogleAPIClient()
-        auth = apiclient.authenticate()
-        apiservice = GoogleServices(auth)
-        apiservice.save_csv(client.name, csv_buffer)
+        return csv_buffer

@@ -1,12 +1,16 @@
+# databases/alchemy.py
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import DateTime, ForeignKeyConstraint, MetaData, create_engine, Column, Integer, String, ForeignKey, select, text
+from sqlalchemy import Boolean, DateTime, ForeignKeyConstraint, MetaData, create_engine, Column, Integer, String, ForeignKey, func, select, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 import csv
 import pandas as pd
 
-Base_Academics = declarative_base()
-Base_Journal = declarative_base()
+Base = declarative_base()
+academic_tables = ['profile_level_attributes', 'peers', 'degrees_used', 'department_people',
+                   'degree_dates', 'applicants', 'coauthors', 'publications', 'yearly_citations']
+journal_tables = ['matched_publications', 'rejected_papers']
+setup_table = ['client_informations']
 
 
 class DatabaseAlc:
@@ -19,7 +23,19 @@ class DatabaseAlc:
     def create_session(self):
         return self.Session()
 
-    def insert_data_from_sheet(self, sheet, table, session):
+    def insert_data_for_creating_client(self, client):
+        Session = self.create_session()
+        try:
+            client_data = ClientInformation(**vars(client))
+            print(vars(client_data))
+            Session.add(client_data)
+            Session.commit()
+            print("Client added successfully")
+        except Exception as e:
+            print(f"CLIENTERRRRRORR: {e}")
+            Session.rollback()
+
+    def insert_provided_data(self, sheet, table, session):
         for a_row in sheet.get_all_records():
             try:
                 data = {key.replace(' ', '_').lower()
@@ -83,8 +99,43 @@ class DatabaseAlc:
             rows = result.fetchall()
             return rows
 
+    def get_client_info(self, id):
+        Session = self.create_session()
+        return Session.query(ClientInformation).filter_by(id=id).first()
 
-class ProfileLevelAttribute(Base_Academics):
+    def get_all_client_info(self):
+        Session = self.create_session()
+        return Session.query(ClientInformation).all()
+
+    def remove_one_client(self, id):
+        Session = self.create_session()
+
+        client = Session.query(ClientInformation).filter_by(id=id).first()
+        if client:
+            Session.delete(client)
+            Session.commit()
+            print("Client removed successfully")
+        else:
+            print("No client found with the specified ID")
+
+    def remove_all_client(self):
+        Session = self.create_session()
+        Session.query(ClientInformation).delete()
+        Session.commit()
+        print("Everyone removed from clients successfully")
+
+    def update_client_information(self, id, column, value):
+        Session = self.create_session()
+        client = Session.query(ClientInformation).filter_by(id=id).first()
+        if client:
+            setattr(client, column, value)
+            Session.commit()
+            print("Value updated successfully")
+        else:
+            print("No client found with the specified ID")
+
+
+class ProfileLevelAttribute(Base):
     __tablename__ = 'profile_level_attributes'
 
     id = Column(Integer, primary_key=True)
@@ -110,7 +161,7 @@ class ProfileLevelAttribute(Base_Academics):
     department_url = Column(String(255))
 
 
-class Coauthor(Base_Academics):
+class Coauthor(Base):
     __tablename__ = 'coauthors'
 
     id = Column(Integer, primary_key=True)
@@ -123,7 +174,7 @@ class Coauthor(Base_Academics):
     profile_level_attributes = relationship("ProfileLevelAttribute")
 
 
-class Publication(Base_Academics):
+class Publication(Base):
     __tablename__ = 'publications'
 
     id = Column(Integer, primary_key=True)
@@ -156,7 +207,7 @@ class Publication(Base_Academics):
     profile_level_attributes = relationship("ProfileLevelAttribute")
 
 
-class YearlyCitation(Base_Academics):
+class YearlyCitation(Base):
     __tablename__ = 'yearly_citations'
 
     id = Column(Integer, primary_key=True)
@@ -167,10 +218,9 @@ class YearlyCitation(Base_Academics):
     citation_count = Column(Integer)
     ForeignKeyConstraint(['publicationid', 'google_scholar_id'], [
                          'publications.publicationid', 'publications.google_scholar_id'])
-    # publication = relationship("Publication", foreign_keys=[publication_id, google_scholar_id])
 
 
-class Peers(Base_Academics):
+class Peers(Base):
     __tablename__ = 'peers'
 
     id = Column(Integer, primary_key=True)
@@ -182,7 +232,7 @@ class Peers(Base_Academics):
     google_scholar_id = Column(String(255))
 
 
-class DegreesUsed(Base_Academics):
+class DegreesUsed(Base):
     __tablename__ = 'degrees_used'
 
     id = Column(Integer, primary_key=True)
@@ -191,7 +241,7 @@ class DegreesUsed(Base_Academics):
     degree_rank = Column(Integer)
 
 
-class DepartmentPeople(Base_Academics):
+class DepartmentPeople(Base):
     __tablename__ = 'department_people'
 
     id = Column(Integer, primary_key=True)
@@ -202,7 +252,7 @@ class DepartmentPeople(Base_Academics):
     department_join_date = Column(String(255))
 
 
-class DegreeDates(Base_Academics):
+class DegreeDates(Base):
     __tablename__ = 'degree_dates'
 
     id = Column(Integer, primary_key=True)
@@ -211,7 +261,7 @@ class DegreeDates(Base_Academics):
     degree_date = Column(String(255))
 
 
-class Applicants(Base_Academics):
+class Applicants(Base):
     __tablename__ = 'applicants'
 
     id = Column(Integer, primary_key=True)
@@ -221,7 +271,7 @@ class Applicants(Base_Academics):
     applicant_google_scholar_id = Column(String(255))
 
 
-class MatchedPublications(Base_Journal):
+class MatchedPublications(Base):
     __tablename__ = 'matched_publications'
 
     id = Column(Integer, primary_key=True)
@@ -242,7 +292,7 @@ class MatchedPublications(Base_Journal):
     traceid = Column(Integer)
 
 
-class RejectedPapers(Base_Journal):
+class RejectedPapers(Base):
     __tablename__ = 'rejected_papers'
 
     id = Column(Integer, primary_key=True)
@@ -251,3 +301,24 @@ class RejectedPapers(Base_Journal):
     authors_list = Column(String(255))
     manuscript_year = Column(Integer)
     keywords = Column(String(255))
+
+
+class ClientInformation(Base):
+    __tablename__ = 'client_informations'
+
+    id = Column(Integer, primary_key=True)
+    email = Column(String(255), nullable=False)
+    name = Column(String(255), nullable=False)
+    short_name = Column(String(255))
+    department_name = Column(String(255))
+    department_short_name = Column(String(255))
+    status = Column(String(255), nullable=False, default='new')
+    created = Column(DateTime, default=func.current_timestamp())
+    client_data_sheet_link = Column(String(255))
+    department_subscribed = Column(Boolean, default=False)
+    applicant_subscribed = Column(Boolean, default=False)
+    peer_subscribed = Column(Boolean, default=False)
+    journal_subscribed = Column(Boolean, default=False)
+    department_data_last_update = Column(DateTime)
+    journal_data_last_update = Column(DateTime)
+    data_update_period = Column(String(255))

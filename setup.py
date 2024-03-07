@@ -1,3 +1,4 @@
+# setup.py
 import os
 from databases.db import Database
 print("Installing Python dependencies...")

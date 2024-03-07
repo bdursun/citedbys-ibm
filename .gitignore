@@ -162,3 +162,7 @@ config/credentials.json
 config/token.json
 config/gspread
 /token.json
+config/oauth2
+config/service_account
+/mock_data
+databases/db/*
