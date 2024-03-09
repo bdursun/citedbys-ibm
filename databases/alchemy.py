@@ -26,14 +26,26 @@ class DatabaseAlc:
     def insert_data_for_creating_client(self, client):
         Session = self.create_session()
         try:
+
             client_data = ClientInformation(**vars(client))
             print(vars(client_data))
             Session.add(client_data)
             Session.commit()
             print("Client added successfully")
         except Exception as e:
-            print(f"CLIENTERRRRRORR: {e}")
+            print(f"error: {e}")
             Session.rollback()
+    def insert_exception(self, id,exception):
+        Session = self.create_session()
+        try:
+            client = Session.query(ClientInformation).filter_by(id=id).first()
+            setattr(client, 'status', exception)
+            Session.commit()
+            print("Exception added successfully")
+        except Exception as e:
+            print(f"problem when adding exception: {e}")
+            Session.rollback()
+
 
     def insert_provided_data(self, sheet, table, session):
         for a_row in sheet.get_all_records():
@@ -45,6 +57,7 @@ class DatabaseAlc:
             except Exception as e:
                 print(f"Error occurred while inserting data: {e}")
                 session.rollback()
+
 
     def insert_data_from_json_nested(self, data, table, session, google_scholar_id=None, profile_id=None, publicationid=None):
         try:

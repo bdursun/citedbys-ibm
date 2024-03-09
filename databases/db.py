@@ -5,10 +5,6 @@ from databases.alchemy import *
 
 
 class Database:
-    column_name_list_academician = "id INTEGER PRIMARY KEY", "name TEXT", "googlescholarid INT"
-    column_name_list_uni = "id INTEGER PRIMARY KEY", "name TEXT", "googlelink TEXT"
-    column_name_list_setup = 'id INTEGER PRIMARY KEY'
-
     def __init__(self, name):
         self.database_name = f"{name}.db"
         self.name = name

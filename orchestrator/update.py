@@ -1,4 +1,5 @@
 # orchestrator/update.py
+from exception.exception import CustomException
 from orchestrator.client import *
 from datetime import datetime
 from databases.db import Database
@@ -22,6 +23,7 @@ class Update:
             return
         else:
             try:
+                update_db = DatabaseAlc('orchestrator/db/citedbys.db')
                 if self.time_diff(client.department_data_last_update, client.data_update_period):
                     print(f"client{client.name}  dep needs to update")
                     self.update_client_data(client, 'department')
@@ -32,18 +34,27 @@ class Update:
                     db.create_view("viewname", query)
                     csv_buffer = self.convert_csv(db.select_view("viewname"))
                     self.save_csv(client.name, csv_buffer)
+                    update_db.update_client_information(
+                        client.id, "department_data_last_update", datetime.now())
+                    update_db.update_client_information(
+                        client.id, "status", 'updated')
+
                     # call crawler class and return outputvalue
                 else:
                     print(f"client{client.name}  dep no need to update")
-            except Exception as e:
-                print(
-                    f"An error occurred while updating dep data: {str(e)}")
+                    update_db.update_client_information(
+                        client.id, "status", 'no need to update')
+
+            except:
+                raise CustomException(
+                    'An error occurred while updating dep data', client.id)
 
     def update_journal(self, client):
         if not client.journal_subscribed:
             return
         else:
             try:
+                update_db = DatabaseAlc('orchestrator/db/citedbys.db')
                 if self.time_diff(client.journal_data_last_update, client.data_update_period):
                     print(f"client{client.name}  jour needs to update")
                     self.update_client_data(client, "journal")
@@ -54,11 +65,18 @@ class Update:
                     db.create_view("viewname", query)
                     csv_buffer = self.convert_csv(db.select_view("viewname"))
                     self.save_csv(client.name, csv_buffer)
+                    update_db.update_client_information(
+                        client.id, "journal_data_last_update", datetime.now())
+                    update_db.update_client_information(
+                        client.id, "status", 'updated')
                 else:
-                    print(f"client{client.name}  jour no need to update")
-            except Exception as e:
-                print(
-                    f"An error occurred while updating journal data: {str(e)}")
+                    print(f"client{client.name}  journal no need to update")
+                    update_db.update_client_information(
+                        client.id, "status", 'no need to update')
+
+            except:
+                raise CustomException(
+                    'An error occurred while updating jour data', client.id)
 
     def time_diff(self, lastdate, period):
         cur_time = datetime.now()

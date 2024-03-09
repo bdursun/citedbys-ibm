@@ -12,7 +12,7 @@ import config.googleapi
 
 class Client:
     def __init__(self, email, name,
-                 short_name, department_name="",
+                id="",short_name="", department_name="",
                  department_short_name="",
                  status="new",
                  created=None,
@@ -24,6 +24,8 @@ class Client:
                  department_data_last_update="",
                  journal_data_last_update="",
                  data_update_period="monthly"):
+        if id != "":
+            self.id = id
         self.email = email
         self.name = name
         self.short_name = short_name
@@ -64,7 +66,6 @@ class Client:
                 client_attributes = client.__dict__
         # Remove the '_sa_instance_state' key from the dictionary
                 client_attributes.pop('_sa_instance_state', None)
-                client_attributes.pop('id', None)
                 classClient = Client(**client_attributes)
             except Exception as e:
                 print(f"Error occurred while creating Client object: {e}")
@@ -85,8 +86,9 @@ class Client:
             client_attributes = client.__dict__
     # Remove the '_sa_instance_state' key from the dictionary
             client_attributes.pop('_sa_instance_state', None)
-            client_attributes.pop('id', None)
             classClient = Client(**client_attributes)
+            print(vars(classClient))
+            print('department subs: ',classClient.department_subscribed)
         except Exception as e:
             print(f"Error occurred while creating Client object: {e}")
         if classClient.department_subscribed or classClient.peer_subscribed or classClient.applicant_subscribed or classClient.journal_subscribed:

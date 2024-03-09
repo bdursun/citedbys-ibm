@@ -165,4 +165,5 @@ config/gspread
 config/oauth2
 config/service_account
 /mock_data
+.vscode/
 databases/db/*

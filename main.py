@@ -18,15 +18,16 @@ def main():
     # create a new client
     # email and name required!!!
     # Orchestrator.create_client(
-    #             email= "dohauni@uni.com",
-    #             name= "doha university",
-    #             short_name="du",
-    #             department_name="finance",
-    #             department_short_name="duf",
+
+    #             email= "ucla@uni.com",
+    #             name= "university of california",
+    #             short_name="ucla",
+    #             department_name="law school",
+    #             department_short_name="law",
     #             status="new",
     #             client_data_sheet_link="",
     #             department_subscribed=1,
-    #             applicant_subscribed=0,
+    #             applicant_subscribed=1,
     #             peer_subscribed=1,
     #             journal_subscribed=0,
     #             department_data_last_update=None,
@@ -73,10 +74,9 @@ def main():
 # ------------------------------------#
 
     # Manual Update with Client ID
-    # client_id= 2
-    # Orchestrator.manual_update(client_id)
+    client_id= 1
+    Orchestrator.manual_update(client_id)
 # ------------------------------------#
-
 
 if __name__ == '__main__':
     main()

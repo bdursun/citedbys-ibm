@@ -12,7 +12,7 @@ class Orchestrator:
     @staticmethod
     def create_client(email, name, short_name="", department_name="", department_short_name="", status="new", created=None, client_data_sheet_link="", department_subscribed=0, applicant_subscribed=0, peer_subscribed=0, journal_subscribed=0, department_data_last_update="", journal_data_last_update="", data_update_period="one_demand"):
         print(email)
-        client = Client(email, name, short_name, department_name, department_short_name, status, created, client_data_sheet_link, department_subscribed,
+        client = Client(email, name, "", short_name, department_name, department_short_name, status, created, client_data_sheet_link, department_subscribed,
                         applicant_subscribed, peer_subscribed, journal_subscribed, department_data_last_update, journal_data_last_update, data_update_period)
         client.create_client()
 
